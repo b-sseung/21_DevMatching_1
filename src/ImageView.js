@@ -3,7 +3,7 @@ const IMAGE_PATH_PREFIX = 'https://fe-dev-matching-2021-03-serverlessdeploymentb
 export default function ImageView({ $app, initialState }) {
     this.state = initialState;
     this.$target = document.createElement('div');
-    this.$target.className = 'Modal ImageViewer';
+    this.$target.className = 'Modal ImageView';
 
     $app.appendChild(this.$target);
 

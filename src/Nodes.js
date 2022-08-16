@@ -19,23 +19,21 @@ export default function Nodes({ $app, initialState, onClick, onBackClick }) {
                 
                 return `
                     <div class="Node" data-node-id="${node.id}">
-                        <img src="${iconPath}" />
+                        <img src="${iconPath}"/>
                         <div>${node.name}</div>
                     </div>
                 `
             }).join('');
-            
-            this.$target.innerHTML = !this.state.isRoot ? `<div class"Node"><img src="./assets/prev.png"></div>${nodesTemplate}` : nodesTemplate;
+            this.$target.innerHTML = this.state.isRoot ? `<div class="Node"><img src="./assets/prev.png"></div>${nodesTemplate}` : nodesTemplate;
         }
         
         this.$target.querySelectorAll('.Node').forEach($node => {
             $node.addEventListener('click', (e) => {
-                console.log("클릭, " + e.target.dataset);
-                const { nodeId } = e.target.dataset;
+                const { nodeId } = e.target.parentNode.dataset;
+
                 if (!nodeId) this.onBackClick();
 
                 const selectedNode = this.state.nodes.find(node => node.id === nodeId)
-                console.log(nodeId + ", " + selectedNode);
                 
                 if (selectedNode) this.onClick(selectedNode);
             })
