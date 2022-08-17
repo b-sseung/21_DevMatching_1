@@ -9,7 +9,7 @@ const cache = {};
 
 export default function App($app) {
 	this.state = {
-    	isRoot: false,
+    	isRoot: true,
         nodes: [],
         depth: [],
         selectedFilePath: null,
@@ -18,7 +18,29 @@ export default function App($app) {
     
     const breadcrumb = new Breadcrumb({
     	$app,
-        initialState: this.state.depth
+        initialState: this.state.depth,
+        onClick: (index) => {
+            if (index === null) {
+                this.setState({
+                    ...this.state,
+                    depth: [],
+                    isRoot: true,
+                    nodes: cache.root
+                })
+            } else {
+                if (index === this.state.depth.length - 1) return;
+
+                const nextState = {...this.state};
+                const nextDepth = this.state.depth.slice(0, index+1);
+
+                this.setState({
+                    ...nextState,
+                    depth: nextDepth,
+                    isRoot: false,
+                    nodes: cache[nextDepth[nextDepth.length - 1].id]
+                })
+            }
+        }
     })
     
     const nodes = new Nodes({
@@ -30,17 +52,27 @@ export default function App($app) {
         onClick: async (node) => {
             try {
                 if (node.type === 'DIRECTORY') {
-                    const nextNodes = await request(node.id);
-                    this.setState({
-                        ...this.state,
-                        isRoot: true,
-                        depth: [...this.state.depth, node],
-                        nodes: nextNodes
-                    });
+                    if (cache[node.id]) {
+                        this.setState({
+                            ...this.state,
+                            isRoot: false,
+                            depth: [...this.state.depth, node],
+                            nodes: cache[node.id]
+                        });
+                    } else {
+                        const nextNodes = await request(node.id);
+                        this.setState({
+                            ...this.state,
+                            isRoot: false,
+                            depth: [...this.state.depth, node],
+                            nodes: nextNodes
+                        });
+                        cache[node.id] = nextNodes;
+                    }
                 } else if (node.type === 'FILE') {
                     this.setState({
                         ...this.state,
-                        isRoot: true,
+                        isRoot: false,
                         selectedFilePath: node.filePath
                     })
                 }
@@ -54,21 +86,17 @@ export default function App($app) {
                 nextState.depth.pop();
 
                 const prevNodeId = nextState.depth.length === 0 ? null : nextState.depth[nextState.depth.length - 1].id;
-                console.log("이건가:"+prevNodeId);
                 if (prevNodeId === null) {
-                    const rootNodes = await request();
-                    this.setState({
-                        ...nextState,
-                        isRoot: false,
-                        nodes: rootNodes
-                    })
-                } else {
-                    const prevNodes = await request(prevNodeId);
-
                     this.setState({
                         ...nextState,
                         isRoot: true,
-                        nodes: prevNodes
+                        nodes: cache.root
+                    })
+                } else {
+                    this.setState({
+                        ...nextState,
+                        isRoot: false,
+                        nodes: cache[prevNodeId],
                     })
                 }
             } catch (e) {
@@ -79,7 +107,12 @@ export default function App($app) {
 
     const imageView = new ImageView({
         $app,
-        initialState: this.state.selectedNodeImage
+        initialState: this.state.selectedNodeImage,
+        onClick: async () => {
+            this.setState({
+                selectedFilePath: null
+            })
+        }
     })
 
     const loading = new Loading({
@@ -96,6 +129,7 @@ export default function App($app) {
         });
         imageView.setState(this.state.selectedFilePath);
         loading.setState(this.state.isLoading);
+        this.state.selectedFilePath = null;
     }
 
     const init = async () => {
@@ -107,6 +141,8 @@ export default function App($app) {
                 nodes: rootNodes,
                 isLoading: false
             });
+
+            cache.root = rootNodes;
         } catch (e) {
             //에러처리 하기
         }
